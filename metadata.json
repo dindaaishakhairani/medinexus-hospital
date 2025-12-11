@@ -1,0 +1,5 @@
+{
+  "name": "MediNexus - Hospital Multi-Agent System",
+  "description": "A sophisticated hospital operations interface powered by a multi-agent AI architecture. Features a central Navigator that intelligently routes requests to specialized agents for Scheduling, Patient Info, Billing, and Medical Records.",
+  "requestFramePermissions": []
+}
