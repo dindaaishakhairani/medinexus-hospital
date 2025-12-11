@@ -6,11 +6,11 @@ import * as geminiService from './services/geminiService';
 import AgentCard from './components/AgentCard';
 import ChatMessage from './components/ChatMessage';
 
-// Initial greeting
+// Initial greeting in Indonesian
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
   role: 'model',
-  text: "**Welcome to MediNexus.** \n\nI am the Hospital System Navigator. How can I assist you today? I can direct you to scheduling, patient info, billing, or medical records.",
+  text: "**Selamat datang di MediNexus.** \n\nSaya adalah Hospital System Navigator. Ada yang bisa saya bantu? Saya dapat menghubungkan Anda ke layanan penjadwalan, informasi pasien, penagihan, atau rekam medis.",
   agentId: AgentId.NAVIGATOR,
   timestamp: new Date()
 };
@@ -49,9 +49,8 @@ const App: React.FC = () => {
 
     // Phase 1: Routing (Navigator)
     setIsRouting(true);
-    
-    // reset to navigator visually while thinking
-    // setActiveAgentId(AgentId.NAVIGATOR); 
+    // Reset visual focus to Navigator during routing analysis
+    setActiveAgentId(AgentId.NAVIGATOR); 
 
     try {
       const routingResult = await geminiService.routeRequest(userMsgText);
@@ -60,25 +59,21 @@ const App: React.FC = () => {
       setIsRouting(false);
 
       if (routingResult.targetAgentId !== AgentId.NAVIGATOR) {
-        // System message for handover
         const systemMsg: Message = {
           id: `sys-${Date.now()}`,
           role: 'system',
-          text: `Navigator delegating to ${targetAgent.name}...`,
+          text: `Navigator mendelegasikan tugas ke ${targetAgent.name}...`,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, systemMsg]);
         setActiveAgentId(routingResult.targetAgentId);
-      } else {
-         // Even if it stays on Navigator (which shouldn't happen often per prompt), update ID
-         setActiveAgentId(AgentId.NAVIGATOR);
       }
 
       // Phase 2: Execution (Specialist)
       setIsGenerating(true);
       const response = await geminiService.generateAgentResponse(
         routingResult.targetAgentId,
-        messages.concat(newUserMsg), // pass full history including new message
+        messages.concat(newUserMsg),
         userMsgText
       );
 
@@ -100,7 +95,7 @@ const App: React.FC = () => {
       const errorMsg: Message = {
         id: `err-${Date.now()}`,
         role: 'model',
-        text: "I encountered a system error while processing your request. Please try again.",
+        text: "Terjadi kesalahan sistem saat memproses permintaan Anda. Pastikan API Key telah dikonfigurasi.",
         agentId: AgentId.NAVIGATOR,
         timestamp: new Date()
       };
@@ -122,7 +117,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="font-bold text-lg text-slate-800 leading-none">MediNexus</h1>
-            <p className="text-xs text-slate-500 font-medium">Multi-Agent Hospital System</p>
+            <p className="text-xs text-slate-500 font-medium">Sistem Agen Rumah Sakit Terpadu</p>
           </div>
         </div>
         <div className="hidden md:flex items-center text-xs text-slate-400 gap-1 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
@@ -154,12 +149,12 @@ const App: React.FC = () => {
           
           {/* Loading Indicator */}
           {(isRouting || isGenerating) && (
-             <div className="flex items-start gap-3 animate-pulse">
-                <div className={`w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center`}>
+             <div className="flex items-start gap-3 animate-fade-in">
+                <div className={`w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center`}>
                   <Loader2 size={16} className="animate-spin text-gray-400"/>
                 </div>
-                <div className="bg-gray-100 rounded-2xl p-4 text-xs text-gray-500 rounded-tl-none">
-                   {isRouting ? "Navigator is analyzing request..." : `${AGENTS[activeAgentId].name} is processing...`}
+                <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 text-xs text-gray-500 rounded-tl-none">
+                   {isRouting ? "Navigator sedang menganalisis permintaan..." : `${AGENTS[activeAgentId].name} sedang memproses...`}
                 </div>
              </div>
           )}
@@ -175,7 +170,7 @@ const App: React.FC = () => {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="E.g., Book an appointment, check my bill, or get my records..."
+              placeholder="Contoh: Saya ingin buat janji temu dengan Dokter Budi..."
               className="flex-1 bg-slate-100 border-transparent focus:bg-white focus:border-slate-300 focus:ring-2 focus:ring-slate-200 rounded-xl px-5 py-4 text-sm outline-none transition-all"
               disabled={isRouting || isGenerating}
             />
@@ -193,7 +188,7 @@ const App: React.FC = () => {
             </button>
           </form>
           <div className="text-center mt-2 text-[10px] text-slate-400">
-            AI can make mistakes. Please verify sensitive medical information.
+            AI dapat membuat kesalahan. Mohon verifikasi informasi medis penting.
           </div>
         </div>
       </footer>

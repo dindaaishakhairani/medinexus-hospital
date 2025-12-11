@@ -11,7 +11,6 @@
         font-family: 'Inter', sans-serif;
         background-color: #f8fafc;
       }
-      /* Custom scrollbar for chat area */
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
       }
@@ -19,10 +18,23 @@
           -ms-overflow-style: none;
           scrollbar-width: none;
       }
+      /* Animation for the hub-and-spoke visualization */
+      @keyframes pulse-ring {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        100% { transform: scale(1.2); opacity: 0; }
+      }
+      .animate-pulse-ring {
+        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      }
     </style>
-    <!-- Polyfill for process.env to avoid 'process is not defined' crashes in browser environments -->
+    <!-- CRITICAL: Polyfill process.env BEFORE any module scripts load -->
     <script>
-      window.process = window.process || { env: { API_KEY: '' } };
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
+      // Ensure API_KEY exists to prevent undefined access crashes
+      if (!window.process.env.API_KEY) {
+        window.process.env.API_KEY = ''; 
+      }
     </script>
     <script type="importmap">
     {
@@ -40,10 +52,14 @@
   </head>
   <body>
     <div id="root">
-        <!-- Basic loading state to prevent immediate white screen while JS loads -->
-        <div style="height: 100vh; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-family: sans-serif;">
-            Loading MediNexus...
+        <!-- Basic loading state -->
+        <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-family: sans-serif;">
+            <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #0f172a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;"></div>
+            <div>Initializing Hospital Agents...</div>
         </div>
+        <style>
+            @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
     </div>
     <!-- Main entry point script -->
     <script type="module" src="/index.tsx"></script>

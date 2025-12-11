@@ -2,18 +2,26 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AGENTS } from "../constants";
 import { AgentId, Message, RoutingResponse } from "../types";
 
-// Initialize Gemini Client
-// We assume process.env.API_KEY is available as per instructions.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get the AI client lazily
+// This prevents top-level crashes if process.env is undefined at module load time
+const getAiClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.error("API_KEY is missing from process.env");
+    throw new Error("API Key is missing. Please configure it in your environment.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 const MODEL_FAST = "gemini-2.5-flash";
-const MODEL_SMART = "gemini-2.5-flash"; // Using flash for responsiveness, but could upgrade to pro
+const MODEL_SMART = "gemini-2.5-flash";
 
 /**
  * Step 1: The Navigator Agent determines which sub-agent should handle the request.
  */
 export const routeRequest = async (userMessage: string): Promise<RoutingResponse> => {
   const navigator = AGENTS[AgentId.NAVIGATOR];
+  const ai = getAiClient();
   
   const responseSchema: Schema = {
     type: Type.OBJECT,
@@ -54,8 +62,8 @@ export const routeRequest = async (userMessage: string): Promise<RoutingResponse
     return JSON.parse(text) as RoutingResponse;
   } catch (error) {
     console.error("Routing error:", error);
-    // Fallback to Patient Info if routing fails
-    return { targetAgentId: AgentId.PATIENT_INFO, reasoning: "Routing failed, defaulting to general inquiry." };
+    // Fallback to Patient Info if routing fails, or re-throw if critical
+    return { targetAgentId: AgentId.PATIENT_INFO, reasoning: "System routing failed, defaulting to general inquiry." };
   }
 };
 
@@ -68,22 +76,20 @@ export const generateAgentResponse = async (
   userInput: string
 ): Promise<{ text: string; groundingUrl?: string }> => {
   const agent = AGENTS[agentId];
+  const ai = getAiClient();
   
   // Prepare contents history for context
-  // We only send the last few messages to keep context relevant but concise
   const historyParts = currentHistory.slice(-6).map(msg => ({
     role: msg.role === 'model' ? 'model' : 'user',
     parts: [{ text: msg.text }]
   }));
 
-  // Add the current user input to the end
   const contents = [
     ...historyParts,
     { role: 'user', parts: [{ text: userInput }] }
   ];
 
   const tools = [];
-  // Add Google Search if the agent is allowed to use it
   if (agent.tools?.includes('Google Search')) {
     tools.push({ googleSearch: {} });
   }
@@ -91,19 +97,17 @@ export const generateAgentResponse = async (
   try {
     const result = await ai.models.generateContent({
       model: MODEL_SMART,
-      contents: contents as any, // Type cast for simplicity with simple history structure
+      contents: contents as any,
       config: {
         systemInstruction: agent.systemInstruction,
         tools: tools.length > 0 ? tools : undefined,
       }
     });
 
-    // specific handling for grounding metadata
     let groundingUrl: string | undefined = undefined;
     const groundingChunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks;
     
     if (groundingChunks && groundingChunks.length > 0) {
-      // Find the first chunk with a web URI
       const webChunk = groundingChunks.find((c: any) => c.web?.uri);
       if (webChunk) {
         groundingUrl = webChunk.web.uri;
@@ -111,12 +115,12 @@ export const generateAgentResponse = async (
     }
 
     return { 
-      text: result.text || "I apologize, but I couldn't generate a response at this time.",
+      text: result.text || "Mohon maaf, saya tidak dapat memproses permintaan Anda saat ini.",
       groundingUrl
     };
 
   } catch (error) {
     console.error("Agent generation error:", error);
-    return { text: "System Error: The agent is currently unavailable. Please try again." };
+    return { text: "Terjadi kesalahan sistem. Agen tidak tersedia saat ini." };
   }
 };
