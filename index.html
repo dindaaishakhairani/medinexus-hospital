@@ -31,8 +31,8 @@
     <script>
       window.process = window.process || {};
       window.process.env = window.process.env || {};
-      // Ensure API_KEY exists to prevent undefined access crashes
-      if (!window.process.env.API_KEY) {
+      // Initialize API_KEY if not present, but don't overwrite if build tool injected it
+      if (typeof window.process.env.API_KEY === 'undefined') {
         window.process.env.API_KEY = ''; 
       }
     </script>

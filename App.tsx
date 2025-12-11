@@ -90,12 +90,19 @@ const App: React.FC = () => {
 
       setMessages(prev => [...prev, botMsg]);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in chat flow:", error);
+      
+      let errorMessage = "Terjadi kesalahan sistem saat memproses permintaan Anda.";
+      
+      if (error.message === "MISSING_API_KEY") {
+        errorMessage = "⚠️ **Konfigurasi Error:** API Key tidak ditemukan. \n\nMohon tambahkan Environment Variable `VITE_API_KEY` (atau `API_KEY`) di pengaturan deployment Netlify Anda.";
+      }
+
       const errorMsg: Message = {
         id: `err-${Date.now()}`,
         role: 'model',
-        text: "Terjadi kesalahan sistem saat memproses permintaan Anda. Pastikan API Key telah dikonfigurasi.",
+        text: errorMessage,
         agentId: AgentId.NAVIGATOR,
         timestamp: new Date()
       };
